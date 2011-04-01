@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+  <html>
+    <head>
+      <title>Handlebars Helpers Example</title>
+      <style type="text/css">
+        .even {
+          background: #ccc;
+        }
+      </style>
+    </head>
+    <body>
+      <h1>Handlebars Helpers Example!</h1>
+
+      <div id="list">
+      </div>
+
+      <script type="text/javascript" src="jquery.js"></script>
+      <script type="text/javascript" src="handlebars-0.9.0.pre.5.js"></script>
+
+      <script id="people-template" type="text/x-handlebars-template">
+        {{#stripes people "even" "odd"}}
+          {{> person}}
+        {{else}}
+          <em>There aren't any people.</em>
+        {{/stripes}}
+      </script>
+
+      <script id="person-partial" type="text/x-handlebars-template">
+        <div class="person {{stripeClass}}">
+          <h2>{{first_name}} {{last_name}}</h2>
+          <div class="phone">{{formatPhoneNumber phone}}</div>
+          <div class="email"><a href="mailto:{{email}}">{{email}}</a></div>
+          <div class="since">User since {{member_since}}</div>
+        </div>
+      </script>
+
+      <script type="text/javascript">
+        $(document).ready(function() {
+
+          // compile our template
+          var template = Handlebars.compile($("#people-template").html());
+
+          // add the person partial
+          Handlebars.registerPartial("person", $("#person-partial").html());
+
+          // add the formatPhoneNumber helper
+          Handlebars.registerHelper("formatPhoneNumber", function(phoneNumber) {
+            phoneNumber = phoneNumber.toString();
+            return "(" + phoneNumber.substr(0,3) + ") " + phoneNumber.substr(3,3) + "-" + phoneNumber.substr(6,4);
+          });
+
+          // add the stripe block helper
+          Handlebars.registerHelper("stripes", function(array, even, odd, fn, elseFn) {
+            if (array && array.length > 0) {
+              var buffer = "";
+              for (var i = 0, j = array.length; i < j; i++) {
+                var item = array[i];
+
+                // we'll just put the appropriate stripe class name onto the item for now
+                item.stripeClass = (i % 2 == 0 ? even : odd);
+
+                // show the inside of the block
+                buffer += fn(item);
+              }
+
+              // return the finished buffer
+              return buffer;
+            }
+            else {
+              return elseFn();
+            }
+          });
+
+          $('#list').html(template({people: []}));
+        });
+      </script>
+    </body>
+  </html>

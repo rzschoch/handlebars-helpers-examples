@@ -1,0 +1,170 @@
+ThinkVitamin: Partials and Helpers
+
+Last week we looked at the basics of using Handlebars.js. We learned how to write a basic template to loop over a list of people. This week we'll build on that by learning about using Handlebars' built-in helpers, writing and using partials, and writing custom helpers. Let's get started!
+
+<h3>Built-In Helpers</h3>
+
+Handlebars includes a few built in helpers that make life easier. They are <code>{{#each}}</code>, <code>{{#if}}</code>, and {{#unless}}.
+
+<h4>The <em>each</em> Helper</h4>
+
+The <code>{{#each}}</code> helper iterates over each item in an array. Here's an example.
+
+<pre lang="html">
+<script id="each-template" type="text/x-handlebars-template">
+  {{#each people}}
+    ... output person's info here...
+  {{/each}}
+</script>
+</pre>
+
+The above template would iterate over each item in the variable named people and output the content of the block.
+
+<h4>The <em>if</em> Helper</h4>
+  
+The <code>{{#if}}</code> helper does just what you'd expect - it allows you to implement an if block in your code. The <code>if</code> helper checks whether the value given to it is truthy, and if it is it outputs the given block.
+
+One tricky aspect of the helper, though, is that Handlebars doesn't support conditional statements, so code like <code>{{#if x > y}}</code> isn't possible. That's on purpose. Our take is that any tricky logic like that can be wrapped up into a helper to make sure that your template stays nice and clean.
+
+Here's an example:
+
+<pre lang="html">
+  <script id="each-template" type="text/x-handlebars-template">
+    {{#if people}}
+      ... output person's info here...
+    {{/if}}
+  </script>
+</pre>
+
+That template would only output the inside of the block if people was truthy, so it wouldn't output if people was <code>null</code>, <code>0</code>, <code>false</code>, or <code>undefined</code>. Probably a more appropriate if statement in the above example would be <code>{{#if people.length}}</code>, so that the block would also not be displayed if a people array is present, but empty.
+
+<h4>The <em>unless</em> Helper</h4>
+  
+The <code>{{#unless}}</code> helper is basically just the opposite of if. It only outputs the contained block if the given expression is false. So, for example:
+
+<pre lang="html">
+  <script id="each-template" type="text/x-handlebars-template">
+    {{#unless people.length}}
+      There aren't any people.
+    {{/unless}}
+  </script>
+</pre>
+
+The above template would only output the sentence <em>There aren't any people.</em> if <code>people.length</code> evaluates to a falsy value like <code>null</code>, <code>0</code>, <code>false</code>, or <code>undefined</code>.
+
+<h4>The <em>else</em> Expression</h4>
+
+Handlebars.js includes a special expression, <code>{{else}}</code>, that can be used with any block helper to represent what should be output if the given expression evaluates to a falsy value. Here's an example of how to use it:
+
+<pre lang="html">
+  <script id="each-template" type="text/x-handlebars-template">
+    {{#if people.length}}
+      ... output person's info here...
+    {{else}}
+      There aren't any people.
+    {{/if}}
+  </script>
+</pre>
+
+<h3>Partials</h3>
+
+Partials come in handy when you have a chunk of a Handlebars.js template that you need to use in a few different contexts. The <code>Handlebars.registerPartial</code> method registers the partial. It takes the name of the partial as its first argument and either a template source string or a compiled template as its second argument. The fact that it accepts a compiled template as the second argument is actually pretty useful. That allows you, for example, to use the partial in a list but also append items to the list using the partials template function.
+
+To use a partial from a template, you simply include <code>{{> partialName}}</code>. Here's an example of using a partial:
+
+<pre lang="html">
+<script id="people-template" type="text/x-handlebars-template">
+  {{#each people}}
+    {{> person}}
+  {{/each}}
+</script>
+  
+<script id="person-partial" type="text/x-handlebars-template">
+  <div class="person">
+    <h2>{{first_name}} {{last_name}}</h2>
+    <div class="phone">{{phone}}</div>
+    <div class="email"><a href="mailto:{{email}}">{{email}}</a></div>
+    <div class="since">User since {{member_since}}</div>
+  </div>
+</script>
+  
+<script type="text/javascript">
+  $(document).ready(function() {
+    var template = Handlebars.compile($("#people-template").html());
+    Handlebars.registerPartial("person", $("#person-partial").html());
+    
+    template(yourData);
+  }
+</script>
+
+<h3>Writing Customer Helpers</h3>
+
+One of our major motivations in writing Handlebars.js was to allow global defined helpers. Handlebars supports defining both expression and block helpers.
+
+<h3>Custom Expression Helpers</h3>
+
+To register an expression helper, use the <code>Handlebars.registerHelper</code> method. It takes the name of the helper and the helper function as arguments. Handlebars.js takes whatever is returned from the helper function and writes it out to the template, so you want to be sure and always return a string value from your custom helpers.
+
+To write an expression helper function to output a formatted phone number, we could define the following helper:
+
+<pre lang="JavaScript">
+Handlebars.registerHelper("formatPhoneNumber", function(phoneNumber) {
+  phoneNumber = phoneNumber.toString();
+  return "(" + phoneNumber.substr(0,3) + ") " + phoneNumber.substr(3,3) + "-" + phoneNumber.substr(6,4);
+});
+</pre>
+
+We would use the <code>formatPhoneNumber</code> helper in a template like this:
+
+<pre lang="html">
+{{formatPhoneNumber phoneNumber}}
+</pre>
+
+<h3>Custom Block Helpers</h3>
+
+Custom block helpers are also registered with the <code>Handlebars.registerHelper</code> method. When a helper is used with a block, Handlebars will pass the contents of the block compiled into a function to the helper. If an <code>{{else}}</code> expression is found in the block Handlebars will also pass the contents of the <code>else</code> block to the helper as well.
+
+Here's an example block helper that iterates through an array, letting the contents know whether it's an even or odd row. The helper takes the array to iterate over, the class name for even rows, and the class name for odd rows as arguments. It also takes as its last argument the compiled template function for the contents of the block. The helper simply adds a property named <code>stripeClass</code> to each item in the array as we iterate over it so that we can output that class name within the block. If the array given is falsy or empty the helper just returns the contents of the else block.
+
+<pre lang="JavaScript">
+Handlebars.registerHelper("stripes", function(array, even, odd, fn, elseFn) {
+  if (array && array.length > 0) {
+    var buffer = "";
+    for (var i = 0, j = array.length; i < j; i++) {
+      var item = array[i];
+
+      // we'll just put the appropriate stripe class name onto the item for now
+      item.stripeClass = (i % 2 == 0 ? even : odd);
+
+      // show the inside of the block
+      buffer += fn(item);
+    }
+
+    // return the finished buffer
+    return buffer;
+  }
+  else {
+    return elseFn();
+  }
+});
+</pre>
+
+You can use the stripes helper above in your template like this:
+
+<pre lang="JavaScript">
+{{#stripes myArray "even" "odd"}}
+  <div class="{{stripeClass}}">
+    ... code for the row ...
+  </div>
+{{else}}
+  <em>There aren't any people.</em>
+{{/stripes}}
+</pre>
+
+<h3>See It In Action</h3>
+
+
+
+<h3>There's More!</h3>
+
+We learned a lot here, I think, but there's a lot more to Handlebars.js. Next week I'll be writing about some really interesting things you can do inside of block helpers. 
